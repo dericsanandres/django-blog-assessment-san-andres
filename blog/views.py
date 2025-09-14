@@ -14,6 +14,7 @@ from .serializers import (
     PostListSerializer, PostDetailSerializer, PostCreateSerializer,
     PostUpdateSerializer, CommentCreateSerializer
 )
+from .filters import PostFilter
 
 
 # Django Class-Based Views
@@ -73,7 +74,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 class PostListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['author__name', 'published_date']
+    filterset_class = PostFilter
     search_fields = ['title', 'author__name']
     ordering_fields = ['published_date', 'title']
     ordering = ['-published_date']
@@ -93,6 +94,7 @@ class PostListCreateAPIView(generics.ListCreateAPIView):
 # serves individual post with comments included, full detail view
 class PostDetailAPIView(generics.RetrieveAPIView):
     serializer_class = PostDetailSerializer
+    permission_classes = [permissions.AllowAny]
     
     def get_queryset(self):
         return Post.objects.filter(active=True).select_related('author').prefetch_related('comments__user')
