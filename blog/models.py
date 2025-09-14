@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+# stores blog author information, links to django user with name/email
 class Author(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
@@ -22,6 +23,7 @@ class Author(models.Model):
         return self.name
 
 
+# main blog post model, handles title/content/status with author relationship
 class Post(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
@@ -52,6 +54,7 @@ class Post(models.Model):
         return self.title
 
 
+# comment system for posts, user comments with approval system
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
