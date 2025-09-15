@@ -476,53 +476,44 @@ class TestCommentCreationAPI:
         
         print(f"\n[SUCCESS] Authenticated user can create comments successfully")
     
-    def test_anonymous_user_can_create_comment(self, api_client, active_post):
-        
+    def test_anonymous_user_cannot_create_comment(self, api_client, active_post):
+
         comment_data = {
             'post': active_post.id,
-            'content': 'This is an anonymous comment'
+            'content': 'This anonymous comment should be rejected'
         }
-        
+
         print(f"\n{'='*60}")
-        print(f"[TEST 9: API - Create Comment (Anonymous)")
+        print(f"[TEST 9: API - Create Comment (Anonymous - Should Fail)")
         print(f"{'='*60}")
         print(f"**POST** `/api/comments/` (No Authentication)")
-        print(f"[ANONYMOUS] Anonymous user")
+        print(f"[SECURITY] Testing security: Anonymous user access")
         print(f"[TARGET] Target post: '{active_post.title}' (ID: {active_post.id})")
-        
+
         print(f"\nRequest JSON:")
         print("```json")
         print(json.dumps(comment_data, indent=2))
         print("```")
-        
+
         response = api_client.post('/api/comments/', comment_data, format='json')
-        
-        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 201 else '[FAIL]'}")
-        
-        if response.status_code == status.HTTP_201_CREATED:
-            print(f"\nResponse JSON (201 Created):")
-            print("```json")
-            print(json.dumps(response.data, indent=2))
-            print("```")
-        else:
-            print(f"\nError Response:")
-            print("```json")
-            print(json.dumps(response.data, indent=2))
-            print("```")
-        
-        assert response.status_code == status.HTTP_201_CREATED, f"Anonymous comment creation should succeed, got {response.status_code}: {response.data}"
-        
-        created_comment = Comment.objects.get(content=comment_data['content'])
+
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 403 else '[FAIL]'}")
+        print(f"Expected: 403 Forbidden")
+
+        print(f"\nResponse JSON (403 Forbidden):")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, f"Anonymous comment creation should be forbidden, got {response.status_code}: {response.data}"
+
+        comment_exists = Comment.objects.filter(content=comment_data['content']).exists()
         print(f"\n[DATABASE] Database Verification:")
-        print(f"[VERIFY] Comment linked to correct post: {created_comment.post == active_post}")
-        print(f"[VERIFY] Comment user field: {created_comment.user} (should be None)")
-        print(f"[VERIFY] Comment approval status: {created_comment.is_approved} (should be False)")
-        
-        assert created_comment.post == active_post, "Anonymous comment should be linked to the correct post"
-        assert created_comment.user is None, "Anonymous comment should have no user linked"
-        assert created_comment.is_approved == False, "Anonymous comments should default to unapproved"
-        
-        print(f"\n[SUCCESS] Anonymous users can create comments successfully")
+        print(f"[VERIFY] Comment NOT created in database: {not comment_exists}")
+
+        assert not comment_exists, "Anonymous comment should not be created in database"
+
+        print(f"\n[SUCCESS] Anonymous users correctly blocked from creating comments")
     
     def test_cannot_comment_on_inactive_post(self, api_client, user, inactive_post):
         api_client.force_authenticate(user=user)

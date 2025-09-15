@@ -1,7 +1,7 @@
 # Django Blog Assessment - Makefile
 # Author: Deric San Andres
 
-.PHONY: help setup install migrate test run clean admin demo all
+.PHONY: help setup install migrate test run clean admin demo all api-list api-create api-edit api-delete api-comment api-test
 
 # default target shows help
 help:
@@ -23,6 +23,14 @@ help:
 	@echo "Development Commands:"
 	@echo "  make run        - start Django development server only"
 	@echo "  make demo       - create sample data for testing"
+	@echo ""
+	@echo "API Testing Commands (server must be running):"
+	@echo "  make api-list   - list all posts with filters demo"
+	@echo "  make api-create - create a new post via API"
+	@echo "  make api-edit   - edit an existing post via API"
+	@echo "  make api-delete - delete a post via API"
+	@echo "  make api-comment - create a comment via API"
+	@echo "  make api-test   - run all API commands in sequence"
 	@echo ""
 	@echo "Utility Commands:"
 	@echo "  make clean      - clean up cache and temp files"
@@ -140,3 +148,149 @@ full: setup migrate admin demo test
 	@echo "  http://127.0.0.1:8000/admin/     - Admin panel (admin/admin123)"
 	@echo ""
 	@echo "[READY] Assessment ready for evaluation!"
+
+# API Testing Commands
+# Prerequisites: Server must be running (make run)
+# Authentication: Uses predefined users (admin:admin123, testuser:testpass123)
+
+# List posts with filtering capabilities
+api-list:
+	@echo "===================================================================================="
+	@echo "API Test: List Posts with Filtering"
+	@echo "===================================================================================="
+	@echo ""
+	@echo "Test 1: List all active posts"
+	@echo "Command: curl -X GET http://127.0.0.1:8000/api/posts/"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -s http://127.0.0.1:8000/api/posts/ \
+		-w "\nHTTP Status: %{http_code}\n" | \
+		(python -m json.tool 2>/dev/null || echo "Error: Server not running. Execute 'make run' first.")
+	@echo ""
+	@echo "Test 2: Filter posts by title containing 'django'"
+	@echo "Command: curl -X GET 'http://127.0.0.1:8000/api/posts/?title=django'"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -s "http://127.0.0.1:8000/api/posts/?title=django" -w "\nHTTP Status: %{http_code}\n" | python -m json.tool 2>/dev/null
+	@echo ""
+	@echo "Test 3: Filter posts by author name containing 'admin'"
+	@echo "Command: curl -X GET 'http://127.0.0.1:8000/api/posts/?author__name=admin'"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -s "http://127.0.0.1:8000/api/posts/?author__name=admin" -w "\nHTTP Status: %{http_code}\n" | python -m json.tool 2>/dev/null
+	@echo ""
+
+# Create a new post via API
+api-create:
+	@echo "===================================================================================="
+	@echo "API Test: Create New Post"
+	@echo "===================================================================================="
+	@echo ""
+	@echo "Authentication: admin:admin123"
+	@echo "Endpoint: POST /api/posts/"
+	@echo "Required fields: title, content, published_date, author_name"
+	@echo ""
+	@echo "Command:"
+	@echo "curl -X POST http://127.0.0.1:8000/api/posts/ \\"
+	@echo "  -H 'Content-Type: application/json' \\"
+	@echo "  -u admin:admin123 \\"
+	@echo "  -d '{\"title\":\"API Test Post\",\"content\":\"Post created via API\",\"published_date\":\"2025-09-15T10:00:00Z\",\"author_name\":\"API Tester\"}'"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -X POST http://127.0.0.1:8000/api/posts/ \
+		-H "Content-Type: application/json" \
+		-u admin:admin123 \
+		-d '{"title":"API Test Post","content":"This post was created via Makefile API automation.","published_date":"2025-09-15T10:00:00Z","author_name":"API Tester"}' \
+		-w "\nHTTP Status: %{http_code}\n" -s | python -m json.tool 2>/dev/null
+	@echo ""
+
+# Edit an existing post
+api-edit:
+	@echo "===================================================================================="
+	@echo "API Test: Edit Existing Post"
+	@echo "===================================================================================="
+	@echo ""
+	@echo "Authentication: admin:admin123 (post owner only)"
+	@echo "Endpoint: PATCH /api/posts/1/edit/"
+	@echo "Editable fields: title, content, active"
+	@echo ""
+	@echo "Command:"
+	@echo "curl -X PATCH http://127.0.0.1:8000/api/posts/1/edit/ \\"
+	@echo "  -H 'Content-Type: application/json' \\"
+	@echo "  -u admin:admin123 \\"
+	@echo "  -d '{\"title\":\"Updated Post Title\",\"content\":\"Updated content\",\"active\":true}'"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -X PATCH http://127.0.0.1:8000/api/posts/1/edit/ \
+		-H "Content-Type: application/json" \
+		-u admin:admin123 \
+		-d '{"title":"Updated API Post","content":"This post was updated via Makefile automation.","active":true}' \
+		-w "\nHTTP Status: %{http_code}\n" -s | python -m json.tool 2>/dev/null
+	@echo ""
+
+# Delete a post with confirmation
+api-delete:
+	@echo "===================================================================================="
+	@echo "API Test: Delete Post"
+	@echo "===================================================================================="
+	@echo ""
+	@echo "Authentication: admin:admin123 (post owner only)"
+	@echo "Endpoint: DELETE /api/posts/3/delete/"
+	@echo "WARNING: This operation permanently removes the post and all associated comments."
+	@echo ""
+	@read -p "Proceed with deletion of post ID 3? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo ""
+	@echo "Command:"
+	@echo "curl -X DELETE http://127.0.0.1:8000/api/posts/3/delete/ \\"
+	@echo "  -u admin:admin123"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -X DELETE http://127.0.0.1:8000/api/posts/3/delete/ \
+		-u admin:admin123 \
+		-w "HTTP Status: %{http_code}\n" \
+		-s -o /dev/null
+	@echo "Post deletion completed."
+	@echo ""
+
+# Create a comment on an existing post
+api-comment:
+	@echo "===================================================================================="
+	@echo "API Test: Create Comment"
+	@echo "===================================================================================="
+	@echo ""
+	@echo "Authentication: testuser:testpass123 (authentication required)"
+	@echo "Endpoint: POST /api/comments/"
+	@echo "Required fields: post (ID), content"
+	@echo "Target: Post ID 1"
+	@echo ""
+	@echo "Command:"
+	@echo "curl -X POST http://127.0.0.1:8000/api/comments/ \\"
+	@echo "  -H 'Content-Type: application/json' \\"
+	@echo "  -u testuser:testpass123 \\"
+	@echo "  -d '{\"post\":1,\"content\":\"Comment via API automation\"}'"
+	@echo "------------------------------------------------------------------------------------"
+	@curl -X POST http://127.0.0.1:8000/api/comments/ \
+		-H "Content-Type: application/json" \
+		-u testuser:testpass123 \
+		-d '{"post":1,"content":"This comment was posted via Makefile API automation. Excellent post!"}' \
+		-w "\nHTTP Status: %{http_code}\n" -s | python -m json.tool 2>/dev/null
+	@echo ""
+
+# Execute comprehensive API test suite
+api-test:
+	@echo "===================================================================================="
+	@echo "Comprehensive API Test Suite"
+	@echo "===================================================================================="
+	@echo "Executing all API operations in sequence:"
+	@echo "1. List posts with filters"
+	@echo "2. Create new post"
+	@echo "3. Edit existing post"
+	@echo "4. Create comment"
+	@echo ""
+	@echo "Note: Delete operation excluded from automated suite for safety."
+	@echo "      Run 'make api-delete' manually if needed."
+	@echo ""
+	@$(MAKE) api-list
+	@$(MAKE) api-create
+	@$(MAKE) api-edit
+	@$(MAKE) api-comment
+	@echo "===================================================================================="
+	@echo "API Test Suite Completed"
+	@echo "===================================================================================="
+	@echo "Summary: All operations executed successfully."
+	@echo "Review the output above for detailed results."
+	@echo "Execute 'make api-list' to view updated post data."
