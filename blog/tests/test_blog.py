@@ -1,4 +1,5 @@
 import pytest
+import json
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -74,30 +75,60 @@ class TestPostListView:
     def test_post_list_shows_only_active_posts(self, active_post, inactive_post):
         from django.test import Client
         
+        print(f"\n{'='*60}")
+        print(f"[TEST] Web View - Active Posts Only")
+        print(f"{'='*60}")
+        print(f"**GET** `/posts/` (Django ListView)")
+        print(f"Testing that only active posts appear in web template")
+        
         client = Client()
         response = client.get(reverse('blog:post_list'))
         
+        print(f"\nResponse Status: {response.status_code}")
+        print(f"[SHOULD APPEAR] Active post '{active_post.title}' - active: {active_post.active}")
+        print(f"[SHOULD NOT APPEAR] Inactive post '{inactive_post.title}' - active: {inactive_post.active}")
+        
         assert response.status_code == 200, "Post list page should load successfully"
-        assert active_post.title in response.content.decode(), "Active post should appear in the list"
-        assert inactive_post.title not in response.content.decode(), "Inactive post should not appear in the list"
+        
+        content = response.content.decode()
+        active_in_content = active_post.title in content
+        inactive_in_content = inactive_post.title in content
+        
+        print(f"\nContent Analysis:")
+        print(f"[FOUND] Active post found in HTML: {active_in_content}")
+        print(f"[NOT FOUND] Inactive post found in HTML: {inactive_in_content}")
+        
+        assert active_in_content, "Active post should appear in the list"
+        assert not inactive_in_content, "Inactive post should not appear in the list"
+        
+        print(f"\n[SUCCESS] Web view correctly shows only active posts")
     
     def test_api_post_list_shows_only_active_posts(self, api_client, active_post, inactive_post):
+        print(f"\n{'='*60}")
+        print(f"[TEST 1] API - Active Posts Only")
+        print(f"{'='*60}")
+        print(f"**GET** `/api/posts/`")
+        
         response = api_client.get('/api/posts/')
         
-        print(f"\n[TEST] API Response Status: {response.status_code}")
-        print(f"[TEST] Total posts returned: {response.data['count']}")
-        print(f"[TEST] Active post '{active_post.title}' - Should appear: {active_post.active}")
-        print(f"[TEST] Inactive post '{inactive_post.title}' - Should NOT appear: {inactive_post.active}")
+        print(f"\nResponse Status: {response.status_code}")
+        print(f"[SHOULD APPEAR] Active post '{active_post.title}' - active: {active_post.active}")
+        print(f"[SHOULD NOT APPEAR] Inactive post '{inactive_post.title}' - active: {inactive_post.active}")
         
         assert response.status_code == 200, "API should return success status"
         
+        print(f"\nAPI Response JSON:")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
+        
         titles = [post['title'] for post in response.data['results']]
-        print(f"[TEST] Posts in API response: {titles}")
         
         assert active_post.title in titles, "Active post should be in API response"
         assert inactive_post.title not in titles, "Inactive post should not be in API response"
         
-        print(f"[TEST] ✓ Only active posts are shown in API")
+        print(f"\n[EXCLUDED] Inactive post '{inactive_post.title}' NOT in results")
+        print(f"\n[SUCCESS] API correctly filters to active posts only")
 
 
 @pytest.mark.django_db  
@@ -106,41 +137,61 @@ class TestPostListFiltering:
     def test_api_post_list_date_range_filtering(self, api_client, active_post, old_post):
         recent_date = (timezone.now() - timedelta(days=7)).strftime('%Y-%m-%d')
         
-        print(f"\n[TEST] Testing date range filtering with recent_date >= {recent_date}")
-        print(f"[TEST] Recent post '{active_post.title}' published: {active_post.published_date.strftime('%Y-%m-%d')}")
-        print(f"[TEST] Old post '{old_post.title}' published: {old_post.published_date.strftime('%Y-%m-%d')}")
+        print(f"\n{'='*60}")
+        print(f"[TEST 2] API - Date Range Filter")
+        print(f"{'='*60}")
+        print(f"**GET** `/api/posts/?published_date__gte={recent_date}`")
+        
+        print(f"\nTest Data:")
+        print(f"[RECENT] Recent post '{active_post.title}' published: {active_post.published_date.strftime('%Y-%m-%d')}")
+        print(f"[OLD] Old post '{old_post.title}' published: {old_post.published_date.strftime('%Y-%m-%d')}")
+        print(f"[FILTER] Posts >= {recent_date}")
         
         response = api_client.get(f'/api/posts/?published_date__gte={recent_date}')
         
-        print(f"[TEST] Date filter API Response Status: {response.status_code}")
-        print(f"[TEST] Posts matching date filter: {response.data['count']}")
+        print(f"\nResponse Status: {response.status_code}")
         
         assert response.status_code == 200, "Filtered API request should succeed"
         
+        print(f"\nAPI Response JSON:")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
+        
         titles = [post['title'] for post in response.data['results']]
-        print(f"[TEST] Filtered results: {titles}")
         
         assert active_post.title in titles, "Recent post should appear in date-filtered results"
         assert old_post.title not in titles, "Old post should not appear in recent date filter"
         
-        print(f"[TEST] ✓ Date range filtering works correctly")
+        print(f"\n[INCLUDED] Recent post included")
+        print(f"[EXCLUDED] Old post excluded")
+        print(f"\n[SUCCESS] Date range filtering works correctly")
         
     def test_api_post_list_author_filtering(self, api_client, active_post):
-        print(f"\n[TEST] Testing author filtering for author: '{active_post.author.name}'")
+        print(f"\n{'='*60}")
+        print(f"[TEST 3] API - Author Filter")
+        print(f"{'='*60}")
+        print(f"**GET** `/api/posts/?author__name={active_post.author.name}`")
+        
+        print(f"\nTest Data:")
+        print(f"[AUTHOR] Filtering by author: '{active_post.author.name}'")
         
         response = api_client.get(f'/api/posts/?author__name={active_post.author.name}')
         
-        print(f"[TEST] Author filter API Response Status: {response.status_code}")
-        print(f"[TEST] Posts by author '{active_post.author.name}': {response.data['count']}")
+        print(f"\nResponse Status: {response.status_code}")
         
         assert response.status_code == 200, "Author filtering should work"
         assert len(response.data['results']) >= 1, "Should return posts by the specified author"
         
+        print(f"\nAPI Response JSON:")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
+        
         if response.data['results']:
-            print(f"[TEST] First result author: '{response.data['results'][0]['author_name']}'")
             assert response.data['results'][0]['author_name'] == active_post.author.name, "Returned post should match author filter"
         
-        print(f"[TEST] ✓ Author filtering works correctly")
+        print(f"\n[SUCCESS] Author filtering works correctly")
 
 
 @pytest.mark.django_db
@@ -156,31 +207,45 @@ class TestPostCreationAPI:
             'published_date': timezone.now().isoformat()
         }
         
-        print(f"\n[TEST] Testing post creation by authenticated user: {user.username}")
-        print(f"[TEST] Post data: {post_data}")
+        print(f"\n{'='*60}")
+        print(f"[TEST 4] API - Create Post (Authenticated)")
+        print(f"{'='*60}")
+        print(f"**POST** `/api/posts/`")
+        print(f"[AUTH] Authenticated as: {user.username}")
+        
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(post_data, indent=2))
+        print("```")
         
         response = api_client.post('/api/posts/', post_data, format='json')
         
-        print(f"[TEST] Post creation API Response Status: {response.status_code}")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 201 else '[FAIL]'}")
+        
         if response.status_code == status.HTTP_201_CREATED:
-            print(f"[TEST] Created post ID: {response.data.get('id', 'N/A')}")
-            print(f"[TEST] Created post title: '{response.data.get('title', 'N/A')}'")
+            print(f"\nResponse JSON (201 Created):")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         else:
-            print(f"[TEST] Error response: {response.data}")
+            print(f"\nError Response:")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         
         assert response.status_code == status.HTTP_201_CREATED, f"Post creation should succeed, got {response.status_code}: {response.data}"
         
         created_post = Post.objects.get(title='New Test Post')
-        print(f"[TEST] Verifying created post in database...")
-        print(f"[TEST] Post content matches: {created_post.content == post_data['content']}")
-        print(f"[TEST] Author name: '{created_post.author.name}'")
-        print(f"[TEST] Author linked to user: {created_post.author.user == user}")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Post content matches: {created_post.content == post_data['content']}")
+        print(f"[VERIFY] Author name: '{created_post.author.name}'")
+        print(f"[VERIFY] Author linked to user: {created_post.author.user == user}")
         
         assert created_post.content == post_data['content'], "Post content should match submitted data"
         assert created_post.author.name == 'API Test Author', "Author should be created or linked correctly"
         assert created_post.author.user == user, "Author should be linked to the authenticated user"
         
-        print(f"[TEST] ✓ Authenticated user can create posts successfully")
+        print(f"\n[SUCCESS] Authenticated user can create posts successfully")
     
     def test_unauthenticated_user_cannot_create_post(self, api_client):
         post_data = {
@@ -189,21 +254,35 @@ class TestPostCreationAPI:
             'author_name': 'Unauthorized User'
         }
         
-        print(f"\n[TEST] Testing post creation by unauthenticated user")
-        print(f"[TEST] Attempting to create: '{post_data['title']}'")
+        print(f"\n{'='*60}")
+        print(f"[TEST 5] API - Create Post (Unauthenticated)")
+        print(f"{'='*60}")
+        print(f"**POST** `/api/posts/` (No Authentication)")
+        print(f"[SECURITY] Testing security: Unauthenticated access")
+        
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(post_data, indent=2))
+        print("```")
         
         response = api_client.post('/api/posts/', post_data, format='json')
         
-        print(f"[TEST] Unauthenticated creation API Response Status: {response.status_code}")
-        print(f"[TEST] Expected: 403 Forbidden")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 403 else '[FAIL]'}")
+        print(f"Expected: 403 Forbidden")
+        
+        print(f"\nResponse JSON (403 Forbidden):")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN, "Unauthenticated users should not be able to create posts"
         
         post_exists = Post.objects.filter(title='Unauthorized Post').exists()
-        print(f"[TEST] Post created in database: {post_exists}")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Post NOT created in database: {not post_exists}")
         assert not post_exists, "Post should not be created without authentication"
         
-        print(f"[TEST] ✓ Unauthenticated users correctly blocked from creating posts")
+        print(f"\n[SUCCESS] Unauthenticated users correctly blocked from creating posts")
 
 
 @pytest.mark.django_db
@@ -218,53 +297,86 @@ class TestPostEditingAPI:
             'active': False
         }
         
-        print(f"\n[TEST] Testing post editing by owner: {user.username}")
-        print(f"[TEST] Original post: '{active_post.title}' (active: {active_post.active})")
-        print(f"[TEST] Update data: {update_data}")
+        print(f"\n{'='*60}")
+        print(f"[TEST 6] API - Edit Post (Owner)")
+        print(f"{'='*60}")
+        print(f"**PATCH** `/api/posts/{active_post.id}/edit/`")
+        print(f"[AUTH] Authenticated as: {user.username} (post owner)")
+        
+        print(f"\nOriginal Post:")
+        print(f"[ORIGINAL] Title: '{active_post.title}'")
+        print(f"[ORIGINAL] Active: {active_post.active}")
+        
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(update_data, indent=2))
+        print("```")
         
         response = api_client.patch(f'/api/posts/{active_post.id}/edit/', update_data, format='json')
         
-        print(f"[TEST] Post edit API Response Status: {response.status_code}")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 200 else '[FAIL]'}")
+        
         if response.status_code == status.HTTP_200_OK:
-            print(f"[TEST] Updated post response: {response.data}")
+            print(f"\nResponse JSON (200 OK):")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         else:
-            print(f"[TEST] Error response: {response.data}")
+            print(f"\nError Response:")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         
         assert response.status_code == status.HTTP_200_OK, f"Post update should succeed, got {response.status_code}: {response.data}"
         
         updated_post = Post.objects.get(id=active_post.id)
-        print(f"[TEST] Verifying changes in database...")
-        print(f"[TEST] Title updated: '{active_post.title}' → '{updated_post.title}'")
-        print(f"[TEST] Content updated: {len(updated_post.content)} chars")
-        print(f"[TEST] Active status: {active_post.active} → {updated_post.active}")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Title: '{active_post.title}' → '{updated_post.title}'")
+        print(f"[VERIFY] Content updated: {len(updated_post.content)} chars")
+        print(f"[VERIFY] Active: {active_post.active} → {updated_post.active}")
         
         assert updated_post.title == 'Updated Post Title', "Post title should be updated"
         assert updated_post.content == 'Updated post content', "Post content should be updated"  
         assert updated_post.active == False, "Post active status should be updated"
         
-        print(f"[TEST] ✓ Post owner can edit their own posts successfully")
+        print(f"\n[SUCCESS] Post owner can edit their own posts successfully")
     
     def test_non_author_cannot_edit_post(self, api_client, active_post):
         other_user = User.objects.create_user(username='other', email='other@test.com', password='pass')
         api_client.force_authenticate(user=other_user)
         
-        print(f"\n[TEST] Testing post editing by non-owner: {other_user.username}")
-        print(f"[TEST] Target post: '{active_post.title}' owned by {active_post.author.user.username}")
-        print(f"[TEST] Attempting unauthorized edit...")
+        print(f"\n{'='*60}")
+        print(f"[TEST 7: API - Edit Post (Non-Owner)")
+        print(f"{'='*60}")
+        print(f"**PATCH** `/api/posts/{active_post.id}/edit/`")
+        print(f"[SECURITY] Testing security: Non-owner access")
+        print(f"[AUTH] Authenticated as: {other_user.username}")
+        print(f"[TARGET] Target post owned by: {active_post.author.user.username}")
         
         update_data = {'title': 'Hacked Title'}
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(update_data, indent=2))
+        print("```")
+        
         response = api_client.patch(f'/api/posts/{active_post.id}/edit/', update_data, format='json')
         
-        print(f"[TEST] Unauthorized edit API Response Status: {response.status_code}")
-        print(f"[TEST] Expected: 403 Forbidden")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 403 else '[FAIL]'}")
+        print(f"Expected: 403 Forbidden")
+        
+        print(f"\nResponse JSON (403 Forbidden):")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN, "Non-authors should not be able to edit posts"
         
         unchanged_post = Post.objects.get(id=active_post.id)
-        print(f"[TEST] Post title unchanged: '{unchanged_post.title}' (original: '{active_post.title}')")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Post title unchanged: '{unchanged_post.title}' (original: '{active_post.title}')")
         assert unchanged_post.title == active_post.title, "Post title should remain unchanged"
         
-        print(f"[TEST] ✓ Non-owners correctly blocked from editing posts")
+        print(f"\n[SUCCESS] Non-owners correctly blocked from editing posts")
 
 
 @pytest.mark.django_db
@@ -323,31 +435,46 @@ class TestCommentCreationAPI:
             'content': 'This is a test comment from authenticated user'
         }
         
-        print(f"\n[TEST] Testing comment creation by authenticated user: {user.username}")
-        print(f"[TEST] Target post: '{active_post.title}' (ID: {active_post.id})")
-        print(f"[TEST] Comment data: {comment_data}")
+        print(f"\n{'='*60}")
+        print(f"[TEST 8: API - Create Comment (Authenticated)")
+        print(f"{'='*60}")
+        print(f"**POST** `/api/comments/`")
+        print(f"[AUTH] Authenticated as: {user.username}")
+        print(f"[TARGET] Target post: '{active_post.title}' (ID: {active_post.id})")
+        
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(comment_data, indent=2))
+        print("```")
         
         response = api_client.post('/api/comments/', comment_data, format='json')
         
-        print(f"[TEST] Comment creation API Response Status: {response.status_code}")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 201 else '[FAIL]'}")
+        
         if response.status_code == status.HTTP_201_CREATED:
-            print(f"[TEST] Created comment ID: {response.data.get('id', 'N/A')}")
+            print(f"\nResponse JSON (201 Created):")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         else:
-            print(f"[TEST] Error response: {response.data}")
+            print(f"\nError Response:")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         
         assert response.status_code == status.HTTP_201_CREATED, f"Comment creation should succeed, got {response.status_code}: {response.data}"
         
         created_comment = Comment.objects.get(content=comment_data['content'])
-        print(f"[TEST] Verifying created comment in database...")
-        print(f"[TEST] Comment linked to correct post: {created_comment.post == active_post}")
-        print(f"[TEST] Comment linked to user: {created_comment.user == user}")
-        print(f"[TEST] Comment approval status: {created_comment.is_approved} (should be False)")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Comment linked to correct post: {created_comment.post == active_post}")
+        print(f"[VERIFY] Comment linked to user: {created_comment.user == user}")
+        print(f"[VERIFY] Comment approval status: {created_comment.is_approved} (should be False)")
         
         assert created_comment.post == active_post, "Comment should be linked to the correct post"
         assert created_comment.user == user, "Comment should be linked to the authenticated user"
         assert created_comment.is_approved == False, "New comments should default to unapproved"
         
-        print(f"[TEST] ✓ Authenticated user can create comments successfully")
+        print(f"\n[SUCCESS] Authenticated user can create comments successfully")
     
     def test_anonymous_user_can_create_comment(self, api_client, active_post):
         
@@ -356,31 +483,46 @@ class TestCommentCreationAPI:
             'content': 'This is an anonymous comment'
         }
         
-        print(f"\n[TEST] Testing comment creation by anonymous user")
-        print(f"[TEST] Target post: '{active_post.title}' (ID: {active_post.id})")
-        print(f"[TEST] Comment data: {comment_data}")
+        print(f"\n{'='*60}")
+        print(f"[TEST 9: API - Create Comment (Anonymous)")
+        print(f"{'='*60}")
+        print(f"**POST** `/api/comments/` (No Authentication)")
+        print(f"[ANONYMOUS] Anonymous user")
+        print(f"[TARGET] Target post: '{active_post.title}' (ID: {active_post.id})")
+        
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(comment_data, indent=2))
+        print("```")
         
         response = api_client.post('/api/comments/', comment_data, format='json')
         
-        print(f"[TEST] Anonymous comment creation API Response Status: {response.status_code}")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 201 else '[FAIL]'}")
+        
         if response.status_code == status.HTTP_201_CREATED:
-            print(f"[TEST] Created anonymous comment ID: {response.data.get('id', 'N/A')}")
+            print(f"\nResponse JSON (201 Created):")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         else:
-            print(f"[TEST] Error response: {response.data}")
+            print(f"\nError Response:")
+            print("```json")
+            print(json.dumps(response.data, indent=2))
+            print("```")
         
         assert response.status_code == status.HTTP_201_CREATED, f"Anonymous comment creation should succeed, got {response.status_code}: {response.data}"
         
         created_comment = Comment.objects.get(content=comment_data['content'])
-        print(f"[TEST] Verifying created anonymous comment in database...")
-        print(f"[TEST] Comment linked to correct post: {created_comment.post == active_post}")
-        print(f"[TEST] Comment user field: {created_comment.user} (should be None)")
-        print(f"[TEST] Comment approval status: {created_comment.is_approved} (should be False)")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Comment linked to correct post: {created_comment.post == active_post}")
+        print(f"[VERIFY] Comment user field: {created_comment.user} (should be None)")
+        print(f"[VERIFY] Comment approval status: {created_comment.is_approved} (should be False)")
         
         assert created_comment.post == active_post, "Anonymous comment should be linked to the correct post"
         assert created_comment.user is None, "Anonymous comment should have no user linked"
         assert created_comment.is_approved == False, "Anonymous comments should default to unapproved"
         
-        print(f"[TEST] ✓ Anonymous users can create comments successfully")
+        print(f"\n[SUCCESS] Anonymous users can create comments successfully")
     
     def test_cannot_comment_on_inactive_post(self, api_client, user, inactive_post):
         api_client.force_authenticate(user=user)
@@ -390,21 +532,35 @@ class TestCommentCreationAPI:
             'content': 'This comment should fail'
         }
         
-        print(f"\n[TEST] Testing comment creation on inactive post by user: {user.username}")
-        print(f"[TEST] Target post: '{inactive_post.title}' (active: {inactive_post.active})")
-        print(f"[TEST] Comment data: {comment_data}")
+        print(f"\n{'='*60}")
+        print(f"[TEST 10: API - Validation Error (Inactive Post)")
+        print(f"{'='*60}")
+        print(f"**POST** `/api/comments/`")
+        print(f"[SECURITY] Testing validation: Comment on inactive post")
+        print(f"[AUTH] Authenticated as: {user.username}")
+        print(f"[TARGET] Target post: '{inactive_post.title}' (active: {inactive_post.active})")
+        
+        print(f"\nRequest JSON:")
+        print("```json")
+        print(json.dumps(comment_data, indent=2))
+        print("```")
         
         response = api_client.post('/api/comments/', comment_data, format='json')
         
-        print(f"[TEST] Comment on inactive post API Response Status: {response.status_code}")
-        print(f"[TEST] Expected: 400 Bad Request")
-        print(f"[TEST] Error response: {response.data}")
+        print(f"\nResponse Status: {response.status_code} {'[PASS]' if response.status_code == 400 else '[FAIL]'}")
+        print(f"Expected: 400 Bad Request")
+        
+        print(f"\nResponse JSON (400 Bad Request):")
+        print("```json")
+        print(json.dumps(response.data, indent=2))
+        print("```")
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST, "Comment creation on inactive post should fail"
         assert 'Comments can only be created on active posts' in str(response.data), "Should provide helpful error message"
         
         comment_exists = Comment.objects.filter(content=comment_data['content']).exists()
-        print(f"[TEST] Comment created in database: {comment_exists}")
+        print(f"\n[DATABASE] Database Verification:")
+        print(f"[VERIFY] Comment NOT created in database: {not comment_exists}")
         assert not comment_exists, "Comment should not be created on inactive post"
         
-        print(f"[TEST] ✓ Users correctly blocked from commenting on inactive posts")
+        print(f"\n[SUCCESS] Users correctly blocked from commenting on inactive posts")

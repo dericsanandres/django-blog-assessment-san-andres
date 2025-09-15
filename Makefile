@@ -79,36 +79,7 @@ admin:
 
 # create demo data
 demo:
-	@echo "[DEMO] Creating demo data..."
-	@. venv/bin/activate && python manage.py shell -c "\
-from django.contrib.auth.models import User;\
-from blog.models import Author, Post, Comment;\
-from django.utils import timezone;\
-\
-# create test users\
-admin_user = User.objects.get_or_create(username='admin', defaults={'email': 'admin@example.com', 'is_staff': True, 'is_superuser': True})[0];\
-test_user, created = User.objects.get_or_create(username='testuser', defaults={'email': 'test@example.com', 'is_staff': True});\
-test_user.set_password('testpass123');\
-test_user.save();\
-\
-# create authors\
-admin_author = Author.objects.get_or_create(user=admin_user, defaults={'name': 'Admin User', 'email': 'admin@example.com'})[0];\
-test_author = Author.objects.get_or_create(user=test_user, defaults={'name': 'Test User', 'email': 'test@example.com'})[0];\
-\
-# create sample posts\
-post1 = Post.objects.get_or_create(title='Welcome to Django Blog', defaults={'content': 'This is a sample blog post created by admin.', 'author': admin_author, 'status': 'published', 'active': True})[0];\
-post2 = Post.objects.get_or_create(title='API Testing Post', defaults={'content': 'This post demonstrates the REST API functionality.', 'author': test_author, 'status': 'published', 'active': True})[0];\
-\
-# create sample comments\
-Comment.objects.get_or_create(post=post1, user=test_user, defaults={'content': 'Great blog post!', 'is_approved': True});\
-Comment.objects.get_or_create(post=post2, user=admin_user, defaults={'content': 'Nice work on the API!', 'is_approved': True});\
-\
-print('[DEMO] Demo data created successfully:');\
-print('[DEMO]   - 2 users: admin/admin123, testuser/testpass123');\
-print('[DEMO]   - 2 authors with linked users');\
-print('[DEMO]   - 2 published posts');\
-print('[DEMO]   - 2 approved comments');\
-" 2>/dev/null
+	@. venv/bin/activate && python create_demo_data.py
 
 # open Django shell
 shell:
@@ -140,10 +111,11 @@ all: setup migrate admin demo test
 	@echo "[READY] Assessment ready for evaluation!"
 
 # priority setup - complete setup and start server immediately
-start: setup migrate admin test
+start: setup migrate admin demo test
 	@echo ""
 	@echo "[SUCCESS] Setup completed successfully!"
 	@echo "[SUCCESS] Users created: admin/admin123 and testuser/testpass123"
+	@echo "[SUCCESS] Demo data created: 3 posts and 4 comments"
 	@echo "[SUCCESS] All tests passed"
 	@echo ""
 	@echo "[START] Launching development server..."
