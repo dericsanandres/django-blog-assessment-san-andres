@@ -6,13 +6,15 @@ Built a complete blog system with Author/Post/Comment models, REST API endpoints
 
 ## Bonus Features
 
-Included a complete web interface alongside the required API - makes testing and demonstration much easier:
+Included a complete web interface alongside the required API, makes testing and demonstration much easier:
 - Post browsing with pagination
 - Full CRUD operations through web forms
-- Integrated comment system
-- Clean, responsive design
 
-Everything is containerized and ready to run. You can interact through either the web interface (`http://127.0.0.1:8000/`) or the REST API (`/api/posts/`).
+You can interact through either the web interface (http://127.0.0.1:8000/) or the REST API (/api/posts/).
+
+<img width="784" height="823" alt="Screenshot 2025-09-15 at 5 08 42 PM" src="https://github.com/user-attachments/assets/e03eaebf-9afe-43c2-9748-f879c0a7d942" />
+<img width="775" height="449" alt="Screenshot 2025-09-15 at 5 08 46 PM" src="https://github.com/user-attachments/assets/0d6f31b3-3058-4458-9439-2503d6bbbac5" />
+
 
 ## The Brief
 
