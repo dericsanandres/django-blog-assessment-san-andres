@@ -21,6 +21,8 @@ Also we have two users who are instantly created when we run the makefile locall
 
 In the docker deployment we already have these users, feel free to test the creation of posts using the endpoints.
 
+**Note**: Since this is a trial assessment, I haven't had the chance to develop a dedicated login page. To test authenticated features, please use the Django administration panel at `/admin/` to login as either admin or testuser, then navigate back to the blog homepage.
+
 ## Running Locally
 
 So in here to make things easier I added a makefile to quickly install the packages and run the program.
