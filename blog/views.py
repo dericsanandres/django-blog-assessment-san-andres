@@ -1,6 +1,6 @@
-from django.shortcuts import render
-from django.views.generic import ListView, DetailView, CreateView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import render, get_object_or_404
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 
 from rest_framework import generics, permissions, filters, status
@@ -43,7 +43,7 @@ class PostDetailView(DetailView):
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
     template_name = 'blog/post_form.html'
-    fields = ['title', 'content', 'status']
+    fields = ['title', 'content', 'published_date']
     success_url = reverse_lazy('blog:post_list')
     
     def form_valid(self, form):
@@ -57,6 +57,35 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         )
         form.instance.author = author
         return super().form_valid(form)
+
+
+# allows authenticated users to edit their own posts only
+class PostEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Post
+    template_name = 'blog/post_form.html'
+    fields = ['title', 'content', 'active']
+    success_url = reverse_lazy('blog:post_list')
+
+    def test_func(self):
+        post = self.get_object()
+        return post.author.user == self.request.user
+
+    def get_queryset(self):
+        return Post.objects.all().select_related('author')
+
+
+# allows authenticated users to delete their own posts only
+class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Post
+    template_name = 'blog/post_confirm_delete.html'
+    success_url = reverse_lazy('blog:post_list')
+
+    def test_func(self):
+        post = self.get_object()
+        return post.author.user == self.request.user
+
+    def get_queryset(self):
+        return Post.objects.all().select_related('author')
 
 
 # ensures only post owners can edit/delete their content, checks author.user match
@@ -117,10 +146,10 @@ class PostDeleteAPIView(generics.DestroyAPIView):
         return Post.objects.all().select_related('author')
 
 
-# processes comment submissions via API, allows anonymous comments on active posts
+# processes comment submissions via API, requires authentication
 class CommentCreateAPIView(generics.CreateAPIView):
     serializer_class = CommentCreateSerializer
-    permission_classes = [permissions.AllowAny]  # Allow anonymous comments
+    permission_classes = [permissions.IsAuthenticated]  # Require authentication
     
     def get_queryset(self):
         return Comment.objects.all()

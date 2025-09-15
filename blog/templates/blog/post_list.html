@@ -18,6 +18,25 @@
         .api-links { background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
         .api-links h3 { margin-top: 0; color: #856404; }
         .api-links a { color: #856404; text-decoration: none; margin-right: 15px; }
+        .post-actions { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .btn {
+            background: #007cba;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 3px;
+            text-decoration: none;
+            font-size: 12px;
+            margin-right: 8px;
+            display: inline-block;
+        }
+        .btn:hover { background: #005a87; }
+        .btn-edit { background: #28a745; }
+        .btn-edit:hover { background: #1e7e34; }
+        .btn-delete { background: #dc3545; }
+        .btn-delete:hover { background: #c82333; }
+        .post-title { color: #333; text-decoration: none; }
+        .post-title:hover { color: #007cba; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -26,18 +45,29 @@
     </div>
 
     <div class="api-links">
-        <h3>API Quick Links</h3>
+        <h3>Quick Links</h3>
         <a href="/api/posts/" target="_blank">API Posts</a>
         <a href="/admin/" target="_blank">Admin Panel</a>
         <a href="/api/posts/1/" target="_blank">Post Detail API</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'blog:post_create' %}" style="background: #28a745; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; margin-left: 15px;">+ Create New Post</a>
+        {% endif %}
     </div>
 
     {% for post in posts %}
         <article>
-            <h2>{{ post.title }}</h2>
+            <h2><a href="{% url 'blog:post_detail' post.pk %}" class="post-title">{{ post.title }}</a></h2>
             <div class="post-meta">
                 By <strong>{{ post.author.name }}</strong> • {{ post.published_date|date:"M d, Y g:i A" }}
             </div>
+
+            {% if user.is_authenticated and post.author.user == user %}
+                <div class="post-actions">
+                    <a href="{% url 'blog:post_edit' post.pk %}" class="btn btn-edit">Edit</a>
+                    <a href="{% url 'blog:post_delete' post.pk %}" class="btn btn-delete">Delete</a>
+                </div>
+            {% endif %}
+
             <div class="post-content">
                 <p>{{ post.content }}</p>
             </div>
@@ -48,11 +78,7 @@
                 {% for comment in post.comments.all %}
                     <div class="comment">
                         <span class="comment-author">
-                            {% if comment.user %}
-                                {{ comment.user.username }}
-                            {% else %}
-                                Anonymous
-                            {% endif %}
+                            {{ comment.user.username }}
                         </span>
                         <p>{{ comment.content }}</p>
                         <small>{{ comment.created|date:"M d, Y g:i A" }}</small>
@@ -65,14 +91,14 @@
                     <h5>Add a Comment</h5>
                     {% if user.is_authenticated %}
                         <p><strong>Posting as: {{ user.username }}</strong></p>
+                        <form id="comment-form-{{ post.id }}">
+                            <input type="hidden" name="post" value="{{ post.id }}">
+                            <textarea name="content" rows="3" placeholder="Write your comment here..." required></textarea>
+                            <button type="submit">Post Comment</button>
+                        </form>
                     {% else %}
-                        <p><strong>Posting as: Anonymous</strong></p>
+                        <p><strong>Please <a href="/admin/" style="color: #007cba;">login</a> to post a comment.</strong></p>
                     {% endif %}
-                    <form id="comment-form-{{ post.id }}">
-                        <input type="hidden" name="post" value="{{ post.id }}">
-                        <textarea name="content" rows="3" placeholder="Write your comment here..." required></textarea>
-                        <button type="submit">Post Comment</button>
-                    </form>
                 </div>
             </div>
         </article>

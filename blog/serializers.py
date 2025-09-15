@@ -20,7 +20,7 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['created', 'is_approved']
     
     def get_user_name(self, obj):
-        return obj.user.username if obj.user else 'Anonymous'
+        return obj.user.username
 
 
 # lightweight version for post listings without heavy data, just title/content/author
@@ -95,9 +95,8 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        # Set user from request context if authenticated
+        # Set user from request context (authentication is required)
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            validated_data['user'] = request.user
-        
+        validated_data['user'] = request.user
+
         return Comment.objects.create(**validated_data)
