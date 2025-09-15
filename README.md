@@ -62,6 +62,12 @@ cd django-blog-assessment-san-andres
 docker-compose up -d --build
 docker-compose exec web python manage.py migrate
 ```
+Screenshots During Deployment:
+<img width="954" height="295" alt="Screenshot 2025-09-15 at 12 02 00 PM" src="https://github.com/user-attachments/assets/24bcbed3-be06-4bae-882a-b278940f4a2d" />
+<img width="945" height="427" alt="Screenshot 2025-09-15 at 12 00 46 PM" src="https://github.com/user-attachments/assets/daf66f2a-91b9-43a6-a2ba-024160eb52ca" />
+<img width="955" height="278" alt="Screenshot 2025-09-15 at 12 00 27 PM" src="https://github.com/user-attachments/assets/6ee96268-b356-4467-a4b4-3a3209e963d1" />
+<img width="1072" height="1080" alt="Screenshot 2025-09-15 at 11 59 27 AM" src="https://github.com/user-attachments/assets/0ff96299-05ad-4076-9e48-9fca851e8f29" />
+<img width="1065" height="547" alt="Screenshot 2025-09-15 at 5 20 38 AM" src="https://github.com/user-attachments/assets/e4054915-9a0a-4658-9d08-8d9b98c43bf9" />
 
 Also don't forget to update the ALLOWED_HOSTS[] in project/settings.py so that when we deploy it your IP address will be recognized.
 
