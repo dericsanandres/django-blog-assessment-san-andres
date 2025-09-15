@@ -36,6 +36,13 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
+Screenshots during testing
+
+<img width="779" height="658" alt="Screenshot 2025-09-15 at 1 05 43 PM" src="https://github.com/user-attachments/assets/d3c9c53d-b282-4b38-9aa1-bb3efb5e9870" />
+<img width="784" height="300" alt="Screenshot 2025-09-15 at 1 05 38 PM" src="https://github.com/user-attachments/assets/a55e8e34-cb1f-40bc-b200-59572bf2e221" />
+<img width="726" height="752" alt="Screenshot 2025-09-15 at 1 01 56 PM" src="https://github.com/user-attachments/assets/706a3f02-2399-4536-8726-ff30a18e6e22" />
+<img width="722" height="853" alt="Screenshot 2025-09-15 at 1 01 50 PM" src="https://github.com/user-attachments/assets/46232036-4174-408c-9f2a-3c665162cd88" />
+
 
 ## Docker Deployment
 
