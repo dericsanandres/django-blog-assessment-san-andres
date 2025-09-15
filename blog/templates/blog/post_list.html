@@ -1,19 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Blog Posts</title>
+    <title>Django Blog</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: white; border-radius: 8px; }
+        article { background: white; padding: 25px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .post-meta { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+        .post-content { line-height: 1.6; margin-bottom: 20px; }
+        .comments-section { border-top: 2px solid #eee; padding-top: 20px; margin-top: 20px; }
+        .comment { margin: 15px 0; padding: 15px; background: #f9f9f9; border-left: 3px solid #007cba; border-radius: 4px; }
+        .comment-author { font-weight: bold; color: #007cba; }
+        .comment-form { margin-top: 20px; padding: 20px; background: #f0f8ff; border-radius: 5px; }
+        .comment-form input, .comment-form textarea { width: 100%; padding: 8px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .comment-form button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .comment-form button:hover { background: #005a87; }
+        .api-links { background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .api-links h3 { margin-top: 0; color: #856404; }
+        .api-links a { color: #856404; text-decoration: none; margin-right: 15px; }
+    </style>
 </head>
 <body>
-    <h1>Blog Posts</h1>
+    <div class="header">
+        <h1>Django Blog Assessment</h1>
+    </div>
+
+    <div class="api-links">
+        <h3>API Quick Links</h3>
+        <a href="/api/posts/" target="_blank">API Posts</a>
+        <a href="/admin/" target="_blank">Admin Panel</a>
+        <a href="/api/posts/1/" target="_blank">Post Detail API</a>
+    </div>
+
     {% for post in posts %}
         <article>
             <h2>{{ post.title }}</h2>
-            <p>By {{ post.author.name }}</p>
-            <p>{{ post.content|truncatewords:50 }}</p>
-            <small>{{ post.published_date }}</small>
+            <div class="post-meta">
+                By <strong>{{ post.author.name }}</strong> • {{ post.published_date|date:"M d, Y g:i A" }}
+            </div>
+            <div class="post-content">
+                <p>{{ post.content }}</p>
+            </div>
+
+            <div class="comments-section">
+                <h4>Comments ({{ post.comments.count }})</h4>
+
+                {% for comment in post.comments.all %}
+                    <div class="comment">
+                        <span class="comment-author">
+                            {% if comment.user %}
+                                {{ comment.user.username }}
+                            {% else %}
+                                Anonymous
+                            {% endif %}
+                        </span>
+                        <p>{{ comment.content }}</p>
+                        <small>{{ comment.created|date:"M d, Y g:i A" }}</small>
+                    </div>
+                {% empty %}
+                    <p><em>No comments yet. Be the first to comment!</em></p>
+                {% endfor %}
+
+                <div class="comment-form">
+                    <h5>Add a Comment</h5>
+                    {% if user.is_authenticated %}
+                        <p><strong>Posting as: {{ user.username }}</strong></p>
+                    {% else %}
+                        <p><strong>Posting as: Anonymous</strong></p>
+                    {% endif %}
+                    <form id="comment-form-{{ post.id }}">
+                        <input type="hidden" name="post" value="{{ post.id }}">
+                        <textarea name="content" rows="3" placeholder="Write your comment here..." required></textarea>
+                        <button type="submit">Post Comment</button>
+                    </form>
+                </div>
+            </div>
         </article>
     {% empty %}
-        <p>No posts available.</p>
+        <div style="text-align: center; padding: 50px;">
+            <h3>No posts available yet.</h3>
+            <p>Check back later for new content!</p>
+        </div>
     {% endfor %}
+
+    <script>
+        document.querySelectorAll('[id^="comment-form-"]').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const postId = formData.get('post');
+                const content = formData.get('content');
+
+                try {
+                    const response = await fetch('/api/comments/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            post: parseInt(postId),
+                            content: content
+                        })
+                    });
+
+                    if (response.ok) {
+                        location.reload(); // Refresh to show new comment
+                    } else {
+                        alert('Error posting comment. Please try again.');
+                    }
+                } catch (error) {
+                    alert('Error posting comment. Please try again.');
+                }
+            });
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
 </body>
 </html>

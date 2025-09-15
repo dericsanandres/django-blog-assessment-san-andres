@@ -24,9 +24,9 @@ class PostListView(ListView):
     template_name = 'blog/post_list.html'
     context_object_name = 'posts'
     paginate_by = 10
-    
+
     def get_queryset(self):
-        return Post.objects.filter(active=True, status='published').select_related('author')
+        return Post.objects.filter(active=True, status='published').select_related('author').prefetch_related('comments__user')
 
 
 # individual post pages, single post with author info
